@@ -24,7 +24,7 @@ async def run_schedule():
         await asyncio.sleep(1)
 
 async def main():
-    run_schedule()
+    await run_schedule()
     aiClient = OpenAIClient()
     await aiClient.initialize()
 
