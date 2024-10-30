@@ -44,36 +44,47 @@ class OpenAIClient:
                         data.add_field(key, str(value))
                     for key, (filename, file) in files.items():
                         data.add_field(key, file, filename=filename)
-                        
+
                     async with self.http_client.post(url, data=data, headers=headers, timeout=30) as response:
                         response.raise_for_status()
-                        chunks = []
-                        async for chunk in response.content.iter_chunks():
-                            chunks.append(chunk[0])
-                        for chunk in chunks:
-                            yield chunk
+                        buffer = bytearray()
+                        
+                        content_length = int(response.headers.get('Content-Length', 0))
+                        async for chunk in response.content.iter_chunked(8192):
+                            buffer.extend(chunk)
+                        
+                        if content_length > 0 and len(buffer) != content_length:
+                            raise aiohttp.ClientPayloadError(
+                                f"Incomplete response: got {len(buffer)} bytes, expected {content_length}"
+                            )
+                            
+                        yield bytes(buffer)
                 else:
                     async with self.http_client.post(url, json=payload, headers=headers, timeout=30) as response:
                         response.raise_for_status()
-                        chunks = []
-                        async for chunk in response.content.iter_chunks():
-                            chunks.append(chunk[0])
-                        for chunk in chunks:
+                        async for chunk in response.content.iter_chunked(8192):
                             yield chunk
-                
+
                 break
 
             except aiohttp.ClientPayloadError as e:
-                if "TransferEncodingError" in str(e):
-                    if attempt < self.max_retries - 1:
-                        delay = self.retry_delay * (attempt + 1)  
-                        openai_logger.warning(f"TransferEncodingError occurred. Attempt {attempt + 1}/{self.max_retries}. Retrying in {delay} seconds...")
-                        await asyncio.sleep(delay)
-                        continue
-                openai_logger.error(f"API request failed with payload error: {e}")
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delay * (attempt + 1)
+                    openai_logger.warning(
+                        f"Transfer error occurred. Attempt {attempt + 1}/{self.max_retries}. "
+                        f"Retrying in {delay} seconds..."
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                openai_logger.error(f"Final attempt failed with payload error: {e}")
                 raise
             except aiohttp.ClientError as e:
-                openai_logger.error(f"API request failed: {e}")
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delay * (attempt + 1)
+                    openai_logger.warning(f"Network error occurred. Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                    continue
+                openai_logger.error(f"API request failed after {self.max_retries} attempts: {e}")
                 raise
             except Exception as e:
                 openai_logger.error(f"Unexpected error in API request: {e}")
@@ -133,11 +144,42 @@ class OpenAIClient:
     async def text_to_speech(self, text: str, output_file: str):
         payload = {"model": "tts-1-hd", "voice": "nova", "input": text, "response_format": "wav"}
         
-        with open(output_file, "wb") as f:
-            async for chunk in self.service_openAI("audio/speech", payload):
-                f.write(chunk)
+        buffer = bytearray()
+        try:
+            async with self.http_client.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                json=payload,
+                timeout=30
+            ) as response:
+                response.raise_for_status()
+                content_length = int(response.headers.get('Content-Length', 0))
+                
+                while True:
+                    chunk = await response.content.read(8192)  # Read in 8KB chunks
+                    if not chunk:
+                        break
+                    buffer.extend(chunk)
 
-        openai_logger.info(f'Audio content written to file "{output_file}"')
+                if content_length > 0 and len(buffer) != content_length:
+                    raise aiohttp.ClientPayloadError(
+                        f"Incomplete response: got {len(buffer)} bytes, expected {content_length}"
+                    )
+
+            with open(output_file, "wb") as f:
+                f.write(buffer)
+                
+            openai_logger.info(f'Audio content written to file "{output_file}" (Size: {len(buffer)} bytes)')
+            
+        except aiohttp.ClientPayloadError as e:
+            openai_logger.error(f"Payload error during TTS: {e}")
+            raise
+        except aiohttp.ClientError as e:
+            openai_logger.error(f"Network error during TTS: {e}")
+            raise
+        except Exception as e:
+            openai_logger.error(f"Unexpected error during TTS: {e}")
+            raise
 
     async def process_audio(self, input_audio_file: str) -> bool:
         try:

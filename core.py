@@ -37,11 +37,14 @@ class SpeakerCore:
                 try:
                     res, trigger_type = self.wake_word.listen_for_wake_word(schedule_manager=schedule_manager, py_recorder=self.py_recorder)
                     
-                    if res and trigger_type == WakeWorkType.TRIGGER:
-                        await self.process_conversation()
-                    
-                    if res and trigger_type == WakeWorkType.SCHEDULE:
-                        await self.scheduled_conversation()
+                    if res:
+                        if trigger_type and trigger_type == WakeWordType.TRIGGER:
+                            await self.process_conversation()
+                        
+                        if trigger_type and trigger_type == WakeWordType.SCHEDULE:
+                            await self.scheduled_conversation()
+                    else:
+                        if trigger_type is WakeWordType.OTHER: self.cleanup()
                     
                     await asyncio.sleep(1)
                 except Exception as e:

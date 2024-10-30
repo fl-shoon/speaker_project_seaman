@@ -1,6 +1,7 @@
 from display.setting import SettingMenu
 from pico.pico import PicoVoiceTrigger
 from utils.define import *
+from utils.scheduler import run_pending
 from utils.utils import is_exit_event_set
 
 from pvrecorder import PvRecorder
@@ -48,8 +49,10 @@ class WakeWord:
 
         try:
             while not is_exit_event_set():
+                run_pending()
+
                 if schedule_manager.check_scheduled_conversation():
-                    return True, WakeWorkType.SCHEDULE
+                    return True, WakeWordType.SCHEDULE
 
                 audio_frame = self.pv_recorder.read()
                 audio_frame_bytes = np.array(audio_frame, dtype=np.int16).tobytes()
@@ -69,7 +72,7 @@ class WakeWord:
                 if wake_word_triggered:
                     wakeword_logger.info("Wake word detected")
                     self.audio_player.play_audio(ResponseAudio)
-                    return True, WakeWorkType.TRIGGER
+                    return True, WakeWordType.TRIGGER
                 
                 if current_time - last_button_check_time >= button_check_interval:
                     res = self.check_buttons()
@@ -79,6 +82,8 @@ class WakeWord:
                     
                     last_button_check_time = current_time
 
+        except KeyboardInterrupt:
+            return False, WakeWordType.OTHER
         except Exception as e:
             wakeword_logger.error(f"Error in wake word detection: {e}")
         finally:
