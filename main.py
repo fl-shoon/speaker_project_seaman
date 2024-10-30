@@ -2,8 +2,8 @@ from core import SpeakerCore
 from fireclient.fireclient import FireClient
 from openai.openai import OpenAIClient
 from utils.define import *
-from utils.scheduler import run_pending, ScheduleManager
-from utils.utils import is_exit_event_set, set_exit_event
+from utils.scheduler import ScheduleManager
+from utils.utils import set_exit_event
 
 import asyncio
 import argparse
@@ -18,13 +18,7 @@ def signal_handler(signum, frame):
     main_logger.info(f"Received {signum} signal. Initiating graceful shutdown...")
     set_exit_event()
 
-async def run_schedule():
-    while not is_exit_event_set():
-        run_pending()
-        await asyncio.sleep(1)
-
 async def main():
-    await run_schedule()
     aiClient = OpenAIClient()
     await aiClient.initialize()
 
