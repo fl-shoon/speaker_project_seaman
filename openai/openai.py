@@ -79,9 +79,10 @@ class OpenAIClient:
                 total_attempts += 1
                 if total_attempts < self.max_retries:
                     delay = self.retry_delay * (2 ** (total_attempts - 1))  
-                    openai_logger.warning(
-                        f"Attempt {total_attempts} failed: {str(e)}. Retrying in {delay} seconds..."
-                    )
+                    openai_logger.info(f"Loading audio in {delay} seconds.......")
+                    # openai_logger.warning(
+                    #     f"Attempt {total_attempts} failed: {str(e)}. Retrying in {delay} seconds..."
+                    # )
                     await asyncio.sleep(delay)
                 else:
                     openai_logger.error(f"All attempts failed: {str(e)}")

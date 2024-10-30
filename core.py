@@ -14,6 +14,7 @@ core_logger = logging.getLogger(__name__)
 
 class SpeakerCore:
     def __init__(self, args):
+        self.args = args
         self.ai_client = args.aiclient
         self.serial_module = SerialModule()
         self.py_recorder = PyRecorder()
