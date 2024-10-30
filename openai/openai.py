@@ -142,18 +142,36 @@ class OpenAIClient:
         payload = {"model": "tts-1-hd", "voice": "nova", "input": text, "response_format": "wav"}
         
         temp_file = f"{output_file}.temp"
-        try:
-            async for chunk in self.service_openAI("audio/speech", payload):
-                with open(temp_file, "wb") as f:
-                    f.write(chunk)
+        retry_count = 0
+        max_retries = 3
+        
+        while retry_count < max_retries:
+            try:
+                buffer = bytearray()
+                async for chunk in self.service_openAI("audio/speech", payload):
+                    buffer.extend(chunk)
                 
-            os.replace(temp_file, output_file)
-            openai_logger.info(f'Audio content written to file "{output_file}"')
-        except Exception as e:
-            openai_logger.error(f"Failed to generate speech: {e}")
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
-            raise
+                with open(temp_file, "wb") as f:
+                    f.write(buffer)
+                
+                if os.path.getsize(temp_file) > 0:
+                    os.replace(temp_file, output_file)
+                    openai_logger.info(f'Audio content written to file "{output_file}"')
+                    return
+                else:
+                    raise aiohttp.ClientError("Empty response received")
+                    
+            except Exception as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    delay = self.retry_delay * (2 ** retry_count)
+                    openai_logger.warning(f"TTS attempt {retry_count} failed: {e}. Retrying in {delay} seconds...")
+                    await asyncio.sleep(delay)
+                else:
+                    openai_logger.error(f"TTS failed after {max_retries} attempts: {e}")
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                    raise
 
     async def process_audio(self, input_audio_file: str) -> bool:
         try:

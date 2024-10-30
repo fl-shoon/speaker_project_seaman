@@ -35,7 +35,16 @@ class SpeakerCore:
         try:
             while not is_exit_event_set():
                 try:
-                    res, trigger_type = self.wake_word.listen_for_wake_word(schedule_manager=schedule_manager, py_recorder=self.py_recorder)
+                    if not hasattr(self, 'device_retry_count'):
+                        self.device_retry_count = 0
+                        
+                    res, trigger_type = self.wake_word.listen_for_wake_word(
+                        schedule_manager=schedule_manager, 
+                        py_recorder=self.py_recorder
+                    )
+                    
+                    # Reset retry count on successful operation
+                    self.device_retry_count = 0
                     
                     if res:
                         if trigger_type and trigger_type == WakeWordType.TRIGGER:
@@ -44,16 +53,52 @@ class SpeakerCore:
                         if trigger_type and trigger_type == WakeWordType.SCHEDULE:
                             await self.scheduled_conversation()
                     else:
-                        if trigger_type is WakeWordType.OTHER: self.cleanup()
+                        if trigger_type is WakeWordType.OTHER:
+                            self.cleanup()
+                            break
                     
                     await asyncio.sleep(1)
+                    
                 except Exception as e:
-                    core_logger.error(f"Error occured wake word listening: {e}")
-                    await asyncio.sleep(1)
+                    self.device_retry_count += 1
+                    core_logger.error(f"Error occurred wake word listening: {e}")
+                    
+                    if self.device_retry_count > 3:  # Max retries before reinitializing
+                        core_logger.info("Too many device errors, reinitializing...")
+                        self.cleanup()
+                        await asyncio.sleep(2)
+                        await self.reinitialize()
+                        self.device_retry_count = 0
+                    else:
+                        await asyncio.sleep(1)
+                        
         except Exception as e:
-            core_logger.error(f"Error occured in core: {e}")
+            core_logger.error(f"Error occurred in core: {e}")
         finally:
             self.cleanup()
+
+    async def reinitialize(self):
+        try:
+            if self.py_recorder:
+                self.py_recorder.stop_stream()
+            
+            # Create new instance
+            self.py_recorder = PyRecorder()  
+            self.wake_word = WakeWord(
+                args=self.args, 
+                audio_player=self.audio_player, 
+                serial_module=self.serial_module
+            )
+            
+            if not self.serial_module.isPortOpen:
+                if not self.serial_module.open(USBPort):
+                    raise ConnectionError(f"Failed to open serial port {USBPort}")
+                    
+            core_logger.info("Successfully reinitialized devices")
+            
+        except Exception as e:
+            core_logger.error(f"Failed to reinitialize: {e}")
+            raise
 
     async def process_conversation(self):
         conversation_active = True
@@ -159,10 +204,26 @@ class SpeakerCore:
     
     def cleanup(self):
         core_logger.info("Starting cleanup process...")
-        if self.py_recorder:
-            self.py_recorder.stop_stream()
-        if self.display and self.serial_module and self.serial_module.isPortOpen:
-            self.display.send_white_frames()
-        if self.serial_module:
-            self.serial_module.close()
-        core_logger.info("Cleanup process completed.")
+        try:
+            if self.py_recorder:
+                try:
+                    self.py_recorder.stop_stream()
+                except Exception as e:
+                    core_logger.error(f"Error stopping recorder: {e}")
+                    
+            if self.display and self.serial_module and self.serial_module.isPortOpen:
+                try:
+                    self.display.send_white_frames()
+                except Exception as e:
+                    core_logger.error(f"Error sending white frames: {e}")
+                    
+            if self.serial_module:
+                try:
+                    self.serial_module.close()
+                except Exception as e:
+                    core_logger.error(f"Error closing serial module: {e}")
+                    
+        except Exception as e:
+            core_logger.error(f"Error during cleanup: {e}")
+        finally:
+            core_logger.info("Cleanup process completed.")
