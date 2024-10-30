@@ -1,4 +1,4 @@
-from ..utils.define import BautRate, MCUPort
+from utils.define import BautRate, MCUPort
 from PIL import Image, ImageEnhance
 
 import json

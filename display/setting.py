@@ -1,5 +1,5 @@
-from .brightness import SettingBrightness
-from .volume import SettingVolume
+from brightness import SettingBrightness
+from volume import SettingVolume
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 
 import io

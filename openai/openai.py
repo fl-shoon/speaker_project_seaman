@@ -1,4 +1,4 @@
-from ..utils.define import *
+from utils.define import *
 from typing import List, Dict, AsyncGenerator
 
 import aiohttp

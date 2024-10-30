@@ -1,7 +1,7 @@
-from ..display.setting import SettingMenu
-from ..pico.pico import PicoVoiceTrigger
-from ..utils.define import *
-from ..utils.utils import is_exit_event_set
+from display.setting import SettingMenu
+from pico.pico import PicoVoiceTrigger
+from utils.define import *
+from utils.utils import is_exit_event_set
 
 from pvrecorder import PvRecorder
 

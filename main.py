@@ -1,9 +1,9 @@
-from .core import SpeakerCore
-from .fireclient.fireclient import FireClient
-from .openai.openai import OpenAIClient
-from .utils.define import *
-from .utils.scheduler import run_pending, ScheduleManager
-from .utils.utils import is_exit_event_set, set_exit_event
+from core import SpeakerCore
+from fireclient.fireclient import FireClient
+from openai.openai import OpenAIClient
+from utils.define import *
+from utils.scheduler import run_pending, ScheduleManager
+from utils.utils import is_exit_event_set, set_exit_event
 
 import asyncio
 import argparse

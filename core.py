@@ -1,10 +1,10 @@
-from .audio.player import AudioPlayer
-from .audio.recorder import PyRecorder
-from .utils.define import *
-from .display.display import DisplayModule
-from .transmission.serialModule import SerialModule
-from .utils.utils import is_exit_event_set
-from .wakeword.wakeword import WakeWord
+from audio.player import AudioPlayer
+from audio.recorder import PyRecorder
+from utils.define import *
+from display.display import DisplayModule
+from transmission.serialModule import SerialModule
+from utils.utils import is_exit_event_set
+from wakeword.wakeword import WakeWord
 
 import logging
 import time

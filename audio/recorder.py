@@ -1,4 +1,4 @@
-from ..utils.define import CHANNELS, RATE
+from utils.define import CHANNELS, RATE
 from contextlib import contextmanager
 from scipy.signal import butter, lfilter
 

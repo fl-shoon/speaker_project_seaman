@@ -1,4 +1,4 @@
-from ..sensor.sensor import SpeakerSensor
+from sensor.sensor import SpeakerSensor
 
 import datetime
 import logging
