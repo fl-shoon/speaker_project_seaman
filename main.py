@@ -41,7 +41,7 @@ async def main():
 
     try:
         speaker.audio_player.play_trigger_with_logo(TriggerAudio, SeamanLogo)
-        speaker.run(schedule_manager)
+        await speaker.run(schedule_manager)
 
     except KeyboardInterrupt:
         main_logger.info("KeyboardInterrupt received. Shutting down...")
