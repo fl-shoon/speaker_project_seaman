@@ -1,0 +1,17 @@
+pyserial
+pygame
+pvrecorder
+requests
+PyAudio
+scipy
+Pillow
+numpy
+pvporcupine
+aiohttp
+scipy
+schedule
+aiortc
+google-cloud
+google-cloud-firestore
+google-api-python-client
+opencv-python

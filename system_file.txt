@@ -1,0 +1,27 @@
+[Unit]
+Description=Seaman Speaker System
+After=multi-user.target network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/bash -c 'mkdir -p /run/user/1000/pulse && chown poi:poi /run/user/1000/pulse && chmod 700 /run/user/1000/pulse'
+ExecStart=/bin/bash -c 'su poi -c "/home/poi/seaman/seaman_speaker/runApp.sh"'
+WorkingDirectory=/home/poi/seaman/seaman_speaker
+StandardOutput=journal
+StandardError=journal
+Restart=on-failure
+RestartSec=5
+User=root
+Group=audio
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=PULSE_RUNTIME_PATH=/run/user/1000/pulse
+Environment=HOME=/home/poi
+Environment=USER=poi
+TimeoutStopSec=60
+KillMode=mixed
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Install]
+WantedBy=multi-user.target
