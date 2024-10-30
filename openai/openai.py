@@ -166,7 +166,8 @@ class OpenAIClient:
                 retry_count += 1
                 if retry_count < max_retries:
                     delay = self.retry_delay * (2 ** retry_count)
-                    openai_logger.warning(f"TTS attempt {retry_count} failed: {e}. Retrying in {delay} seconds...")
+                    # openai_logger.warning(f"TTS attempt {retry_count} failed: {e}. Retrying in {delay} seconds...")
+                    openai_logger.warning(f"Trying TTS. Loading audio in {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
                     openai_logger.error(f"TTS failed after {max_retries} attempts: {e}")

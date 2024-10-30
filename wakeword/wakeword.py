@@ -86,8 +86,8 @@ class WakeWord:
             return False, WakeWordType.OTHER
         except Exception as e:
             wakeword_logger.error(f"Error in wake word detection: {e}")
+            raise
         finally:
-            self.serial_module.close() 
-            self.pv_recorder.stop()
-            self.pv_recorder.delete()
-        return False, None
+            if self.pv_recorder:
+                self.pv_recorder.stop()
+                self.pv_recorder.delete()
