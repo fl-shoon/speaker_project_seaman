@@ -36,25 +36,48 @@ class OpenAIClient:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"https://api.openai.com/v1/{endpoint}"
 
-        try:
-            if files:
-                data = aiohttp.FormData()
-                for key, value in payload.items():
-                    data.add_field(key, str(value))
-                for key, (filename, file) in files.items():
-                    data.add_field(key, file, filename=filename)
-                async with self.http_client.post(url, data=data, headers=headers) as response:
-                    response.raise_for_status() 
-                    async for chunk in response.content.iter_chunks():
-                        yield chunk[0]
-            else:
-                async with self.http_client.post(url, json=payload, headers=headers) as response:
-                    response.raise_for_status()  
-                    async for chunk in response.content.iter_chunks():
-                        yield chunk[0]
-        except aiohttp.ClientError as e:
-            openai_logger.error(f"API request failed: {e}")
-            raise
+        for attempt in range(self.max_retries):
+            try:
+                if files:
+                    data = aiohttp.FormData()
+                    for key, value in payload.items():
+                        data.add_field(key, str(value))
+                    for key, (filename, file) in files.items():
+                        data.add_field(key, file, filename=filename)
+                        
+                    async with self.http_client.post(url, data=data, headers=headers, timeout=30) as response:
+                        response.raise_for_status()
+                        chunks = []
+                        async for chunk in response.content.iter_chunks():
+                            chunks.append(chunk[0])
+                        for chunk in chunks:
+                            yield chunk
+                else:
+                    async with self.http_client.post(url, json=payload, headers=headers, timeout=30) as response:
+                        response.raise_for_status()
+                        chunks = []
+                        async for chunk in response.content.iter_chunks():
+                            chunks.append(chunk[0])
+                        for chunk in chunks:
+                            yield chunk
+                
+                break
+
+            except aiohttp.ClientPayloadError as e:
+                if "TransferEncodingError" in str(e):
+                    if attempt < self.max_retries - 1:
+                        delay = self.retry_delay * (attempt + 1)  
+                        openai_logger.warning(f"TransferEncodingError occurred. Attempt {attempt + 1}/{self.max_retries}. Retrying in {delay} seconds...")
+                        await asyncio.sleep(delay)
+                        continue
+                openai_logger.error(f"API request failed with payload error: {e}")
+                raise
+            except aiohttp.ClientError as e:
+                openai_logger.error(f"API request failed: {e}")
+                raise
+            except Exception as e:
+                openai_logger.error(f"Unexpected error in API request: {e}")
+                raise
     
     async def generate_ai_reply(self, new_message: str) -> AsyncGenerator[str, None]:
         if not self.conversation_history:
