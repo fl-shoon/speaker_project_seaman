@@ -17,10 +17,18 @@ class WakeWord:
     def __init__(self, args, audio_player, serial_module):
         self.audio_player = audio_player
         self.serial_module = serial_module
+        self.pv_recorder = None 
         self.porcupine = PicoVoiceTrigger(args)
-        self.pv_recorder = PvRecorder(frame_length=self.porcupine.frame_length)
         self.setting_menu = SettingMenu(audio_player=self.audio_player, serial_module=self.serial_module)
         
+    def initialize_recorder(self):
+        if self.pv_recorder is None:
+            try:
+                self.pv_recorder = PvRecorder(frame_length=self.porcupine.frame_length)
+            except Exception as e:
+                wakeword_logger.error(f"Failed to initialize recorder: {e}")
+                raise
+
     def check_buttons(self):
         try:
             inputs = self.serial_module.get_inputs()
@@ -39,15 +47,17 @@ class WakeWord:
             return None
         
     def listen_for_wake_word(self, schedule_manager, py_recorder):
-        self.pv_recorder.start()
-        frame_bytes = []
-        calibration_interval = 5
-        last_button_check_time = time.time()
-        last_calibration_time = time.time()
-        button_check_interval = 1.5 # 1.5 -> check buttons every 1.5 seconds
-        detections = -1
-
         try:
+            self.initialize_recorder()
+            self.pv_recorder.start()
+
+            frame_bytes = []
+            calibration_interval = 5
+            last_button_check_time = time.time()
+            last_calibration_time = time.time()
+            button_check_interval = 1.5 # 1.5 -> check buttons every 1.5 seconds
+            detections = -1
+
             while not is_exit_event_set():
                 run_pending()
 
@@ -88,6 +98,16 @@ class WakeWord:
             wakeword_logger.error(f"Error in wake word detection: {e}")
             raise
         finally:
-            if self.pv_recorder:
-                self.pv_recorder.stop()
+            self.cleanup_recorder()
+
+        return False, None
+    
+    def cleanup_recorder(self):
+        if self.pv_recorder:
+            try:
+                if self.pv_recorder._recording:
+                    self.pv_recorder.stop()
                 self.pv_recorder.delete()
+                self.pv_recorder = None
+            except Exception as e:
+                wakeword_logger.error(f"Error cleaning up recorder: {e}")
