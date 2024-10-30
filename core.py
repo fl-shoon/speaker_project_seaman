@@ -82,6 +82,8 @@ class SpeakerCore:
                 self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
                 conversation_active = False
 
+            await asyncio.sleep(0.1)
+
         self.display.fade_in_logo(SeamanLogo)
 
     async def scheduled_conversation(self):
@@ -128,6 +130,8 @@ class SpeakerCore:
                 core_logger.error(f"Error processing conversation: {e}")
                 self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
                 conversation_active = False
+
+            await asyncio.sleep(0.1)
 
         self.display.fade_in_logo(SeamanLogo)
 

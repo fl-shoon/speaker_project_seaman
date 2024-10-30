@@ -166,7 +166,6 @@ class SerialModule:
                 time.sleep(0.1)
 
             if ack_received:
-                serial_logger.info("Turned screen to white successfully")
                 time.sleep(flash_delay)
                 return True
             else:

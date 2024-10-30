@@ -36,6 +36,30 @@ class OpenAIClient:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         url = f"https://api.openai.com/v1/{endpoint}"
 
+        try:
+            if files:
+                data = aiohttp.FormData()
+                for key, value in payload.items():
+                    data.add_field(key, str(value))
+                for key, (filename, file) in files.items():
+                    data.add_field(key, file, filename=filename)
+                async with self.http_client.post(url, data=data, headers=headers) as response:
+                    response.raise_for_status() 
+                    async for chunk in response.content.iter_chunks():
+                        yield chunk[0]
+            else:
+                async with self.http_client.post(url, json=payload, headers=headers) as response:
+                    response.raise_for_status()  
+                    async for chunk in response.content.iter_chunks():
+                        yield chunk[0]
+        except aiohttp.ClientError as e:
+            openai_logger.error(f"API request failed: {e}")
+            raise
+    
+    async def service_openAI(self, endpoint: str, payload: Dict, files: Dict = None) -> AsyncGenerator[bytes, None]:
+        headers = {"Authorization": f"Bearer {self.api_key}"}
+        url = f"https://api.openai.com/v1/{endpoint}"
+
         if files:
             data = aiohttp.FormData()
             for key, value in payload.items():
@@ -121,8 +145,16 @@ class OpenAIClient:
 
             # Generate response (Chat)
             ai_response_text = ""
-            async for response_chunk in self.generate_ai_reply(response_text):
-                ai_response_text += response_chunk
+            try:
+                async for response_chunk in self.generate_ai_reply(response_text):
+                    ai_response_text += response_chunk
+            except aiohttp.ClientPayloadError as e:
+                openai_logger.error(f"Error during AI response generation: {e}")
+                if ai_response_text:
+                    openai_logger.info("Using partial response as fallback")
+                else:
+                    self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                    return True  
 
             conversation_ended = '[END_OF_CONVERSATION]' in ai_response_text
             ai_response_text = ai_response_text.replace('[END_OF_CONVERSATION]', '').strip()
@@ -130,18 +162,27 @@ class OpenAIClient:
             openai_logger.info(f"AI response: {ai_response_text}")
             openai_logger.info(f"Conversation ended: {conversation_ended}")
 
-            # Generate speech (TTS)
-            await self.text_to_speech(ai_response_text, output_audio_file)
+            if ai_response_text:
+                # Generate speech (TTS)
+                try:
+                    await self.text_to_speech(ai_response_text, output_audio_file)
+                    self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
+                except Exception as e:
+                    openai_logger.error(f"Error in text-to-speech: {e}")
+                    self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                    return True
+            else:
+                openai_logger.error("No AI response text generated")
+                self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                return True
 
-            # await asyncio.to_thread(self.audio_player.sync_audio_and_gif, output_audio_file, SpeakingGif)
-            self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
             return conversation_ended
 
         except Exception as e:
             openai_logger.error(f"Error in process_audio: {e}")
             self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
             return True
-        
+    
     async def process_text(self, auto_text: str) -> tuple[str, bool]:
         try:
             # Generate response (Chat)
