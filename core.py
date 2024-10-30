@@ -156,9 +156,9 @@ class SpeakerCore:
     
     def cleanup(self):
         core_logger.info("Starting cleanup process...")
-        if self.recorder:
-            self.recorder.stop()
-            self.recorder.delete()
+        if self.py_recorder:
+            self.py_recorder.stop()
+            self.py_recorder.delete()
         if self.display and self.serial_module and self.serial_module.isPortOpen:
             self.display.send_white_frames()
         if self.serial_module:

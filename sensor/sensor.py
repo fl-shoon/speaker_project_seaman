@@ -8,6 +8,7 @@ class SpeakerSensor:
         self.serial_module = serial_module
         self.fire_client = fire_client
         self.auth_token =  None
+        self.last_sensor_data = None
 
     def update_sensor_data(self):
         current_sensor_data = self.get_current_sensor_data()
