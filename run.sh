@@ -77,7 +77,7 @@ export FIREBASE_AUTH_PASSWORD='example-password'
 
 run_main_program() {
     echo "Starting AI Speaker System..."
-    python3 app.py &
+    python3 main.py &
     PYTHON_PID=$!
     wait $PYTHON_PID
     exit_code=$?
