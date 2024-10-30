@@ -83,7 +83,7 @@ class PyRecorder:
         
         self.silence_energy = np.mean(energy_levels)
         self.energy_threshold = self.silence_energy * 4
-        # recorder_logger.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
+        recorder_logger.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
     
     def is_speech(self, audio_frame):
         if self.energy_threshold is None:
