@@ -30,13 +30,9 @@ class FireClient:
     def __init__(self):
         self.db = None
         self.firebase_api = "https://identitytoolkit.googleapis.com/v1/accounts"
-        # self.api_key = "AIzaSyDaEwuvtf9zY_LYVcD8vuFJRrtPTd4h600"
-        self.api_ke = os.environ["FIREBASE_API_KEY"]
-        # self.email = "admin@admin.com"
+        self.api_key = os.environ["FIREBASE_API_KEY"]
         self.email = os.environ["FIREBASE_AUTH_EMAIL"]
-        # self.password = "password"
         self.password = os.environ["FIREBASE_AUTH_PASSWORD"]
-        # self.project_id = "seaman-speaker-dev"
         self.project_id = os.environ["FIREBASE_PROJECT_ID"]
         self.initialize()
 
