@@ -56,24 +56,6 @@ class OpenAIClient:
             openai_logger.error(f"API request failed: {e}")
             raise
     
-    async def service_openAI(self, endpoint: str, payload: Dict, files: Dict = None) -> AsyncGenerator[bytes, None]:
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        url = f"https://api.openai.com/v1/{endpoint}"
-
-        if files:
-            data = aiohttp.FormData()
-            for key, value in payload.items():
-                data.add_field(key, str(value))
-            for key, (filename, file) in files.items():
-                data.add_field(key, file, filename=filename)
-            async with self.http_client.post(url, data=data, headers=headers) as response:
-                async for chunk in response.content.iter_chunks():
-                    yield chunk[0]
-        else:
-            async with self.http_client.post(url, json=payload, headers=headers) as response:
-                async for chunk in response.content.iter_chunks():
-                    yield chunk[0]
-
     async def generate_ai_reply(self, new_message: str) -> AsyncGenerator[str, None]:
         if not self.conversation_history:
             self.conversation_history = [self.gptContext]
@@ -134,14 +116,19 @@ class OpenAIClient:
 
         openai_logger.info(f'Audio content written to file "{output_file}"')
 
-    async def process_audio(self, input_audio_file: str) -> tuple[str, bool]:
+    async def process_audio(self, input_audio_file: str) -> bool:
         try:
             base, ext = os.path.splitext(input_audio_file)
             output_audio_file = f"{base}_response{ext}"
 
             # Transcribe audio (STT)
-            response_text = await self.speech_to_text(input_audio_file)
-            openai_logger.info(f"Result from stt: {response_text}")
+            try:
+                response_text = await self.speech_to_text(input_audio_file)
+                openai_logger.info(f"Result from stt: {response_text}")
+            except Exception as e:
+                openai_logger.error(f"Speech-to-text failed: {e}")
+                self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                return True
 
             # Generate response (Chat)
             ai_response_text = ""
@@ -150,11 +137,15 @@ class OpenAIClient:
                     ai_response_text += response_chunk
             except aiohttp.ClientPayloadError as e:
                 openai_logger.error(f"Error during AI response generation: {e}")
-                if ai_response_text:
-                    openai_logger.info("Using partial response as fallback")
-                else:
+                if not ai_response_text:
                     self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
-                    return True  
+                    return True
+                openai_logger.info("Using partial response as fallback")
+            except Exception as e:
+                openai_logger.error(f"Unexpected error during AI response generation: {e}")
+                if not ai_response_text:
+                    self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                    return True
 
             conversation_ended = '[END_OF_CONVERSATION]' in ai_response_text
             ai_response_text = ai_response_text.replace('[END_OF_CONVERSATION]', '').strip()
@@ -168,7 +159,7 @@ class OpenAIClient:
                     await self.text_to_speech(ai_response_text, output_audio_file)
                     self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
                 except Exception as e:
-                    openai_logger.error(f"Error in text-to-speech: {e}")
+                    openai_logger.error(f"Text-to-speech failed: {e}")
                     self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
                     return True
             else:
