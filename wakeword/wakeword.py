@@ -18,6 +18,7 @@ class WakeWord:
         self.audio_player = audio_player
         self.serial_module = serial_module
         self.pv_recorder = None 
+        self.play_trigger = None
         self.porcupine = PicoVoiceTrigger(args)
         self.setting_menu = SettingMenu(audio_player=self.audio_player, serial_module=self.serial_module)
         
@@ -76,6 +77,10 @@ class WakeWord:
                     frame_bytes = []
                     last_calibration_time = current_time
 
+                if self.play_trigger is None:
+                    self.audio_player.play_trigger_with_logo(TriggerAudio, SeamanLogo)
+                    self.play_trigger = True
+                
                 detections = self.porcupine.process(audio_frame)
                 wake_word_triggered = detections >= 0
                 
@@ -105,8 +110,7 @@ class WakeWord:
     def cleanup_recorder(self):
         if self.pv_recorder:
             try:
-                if self.pv_recorder._recording:
-                    self.pv_recorder.stop()
+                self.pv_recorder.stop()
                 self.pv_recorder.delete()
                 self.pv_recorder = None
             except Exception as e:

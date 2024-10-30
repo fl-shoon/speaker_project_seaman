@@ -9,6 +9,9 @@ import logging
 import tempfile
 import wave
 
+logging.basicConfig(level=logging.INFO)
+recorder_logger = logging.getLogger(__name__)
+
 @contextmanager
 def suppress_stdout_stderr():
     """A context manager that redirects stdout and stderr to devnull"""
@@ -80,7 +83,7 @@ class PyRecorder:
         
         self.silence_energy = np.mean(energy_levels)
         self.energy_threshold = self.silence_energy * 4
-        logging.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
+        # recorder_logger.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
     
     def is_speech(self, audio_frame):
         if self.energy_threshold is None:
@@ -92,7 +95,7 @@ class PyRecorder:
 
     def record_question(self, audio_player):
         self.start_stream()
-        logging.info("Listening... Speak your question.")
+        recorder_logger.info("Listening... Speak your question.")
 
         frames = []
         silent_chunks = 0
@@ -110,7 +113,7 @@ class PyRecorder:
 
             if self.is_speech(data):
                 if not is_speaking:
-                    logging.info("Speech detected. Recording...")
+                    recorder_logger.info("Speech detected. Recording...")
                     is_speaking = True
                 silent_chunks = 0
             else:
@@ -118,15 +121,15 @@ class PyRecorder:
 
             if is_speaking:
                 if silent_chunks > max_silent_chunks:
-                    logging.info(f"End of speech detected. Total chunks: {total_chunks}")
+                    recorder_logger.info(f"End of speech detected. Total chunks: {total_chunks}")
                     break
             elif total_chunks > 5 * self.CHUNKS_PER_SECOND:  
-                logging.info("No speech detected. Stopping recording.")
+                recorder_logger.info("No speech detected. Stopping recording.")
                 self.stop_stream()
                 return None
 
             if total_chunks > max_duration * self.CHUNKS_PER_SECOND:
-                logging.info(f"Maximum duration reached. Total chunks: {total_chunks}")
+                recorder_logger.info(f"Maximum duration reached. Total chunks: {total_chunks}")
                 break
 
         audio_player.play_audio(self.beep_file)

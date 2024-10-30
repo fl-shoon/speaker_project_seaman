@@ -40,7 +40,6 @@ async def main():
     aiClient.setAudioPlayer(speaker.audio_player)
 
     try:
-        speaker.audio_player.play_trigger_with_logo(TriggerAudio, SeamanLogo)
         await speaker.run(schedule_manager)
 
     except KeyboardInterrupt:
