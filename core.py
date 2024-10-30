@@ -32,20 +32,25 @@ class SpeakerCore:
             raise ConnectionError(f"Failed to open serial port {USBPort}")
         
     async def run(self, schedule_manager):
-        while not is_exit_event_set():
-            try:
-                res, trigger_type = self.wake_word.listen_for_wake_word(schedule_manager=schedule_manager, py_recorder=self.py_recorder)
-                
-                if res and trigger_type == WakeWorkType.TRIGGER:
-                    await self.process_conversation()
-                
-                if res and trigger_type == WakeWorkType.SCHEDULE:
-                    await self.scheduled_conversation()
-                
-                await asyncio.sleep(1)
-            except Exception as e:
-                core_logger.error(f"Error occured in core: {e}")
-                await asyncio.sleep(1)
+        try:
+            while not is_exit_event_set():
+                try:
+                    res, trigger_type = self.wake_word.listen_for_wake_word(schedule_manager=schedule_manager, py_recorder=self.py_recorder)
+                    
+                    if res and trigger_type == WakeWorkType.TRIGGER:
+                        await self.process_conversation()
+                    
+                    if res and trigger_type == WakeWorkType.SCHEDULE:
+                        await self.scheduled_conversation()
+                    
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    core_logger.error(f"Error occured wake word listening: {e}")
+                    await asyncio.sleep(1)
+        except Exception as e:
+            core_logger.error(f"Error occured in core: {e}")
+        finally:
+            self.cleanup()
 
     async def process_conversation(self):
         conversation_active = True
