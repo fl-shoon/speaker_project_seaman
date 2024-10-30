@@ -24,6 +24,7 @@ async def run_schedule():
         await asyncio.sleep(1)
 
 async def main():
+    run_schedule()
     aiClient = OpenAIClient()
     await aiClient.initialize()
 
@@ -46,11 +47,7 @@ async def main():
 
     try:
         speaker.audio_player.play_trigger_with_logo(TriggerAudio, SeamanLogo)
-
-        await asyncio.gather(
-            speaker.run(schedule_manager),
-            run_schedule()
-        )
+        speaker.run(schedule_manager)
 
     except KeyboardInterrupt:
         main_logger.info("KeyboardInterrupt received. Shutting down...")
