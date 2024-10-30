@@ -74,8 +74,6 @@ class SpeakerCore:
                         
         except Exception as e:
             core_logger.error(f"Error occurred in core: {e}")
-        finally:
-            self.cleanup()
 
     async def reinitialize(self):
         try:

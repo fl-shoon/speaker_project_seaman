@@ -29,7 +29,7 @@ class AudioPlayer:
             pygame.init()
             mixer.init()
         self.is_playing = mixer.music.get_busy()
-        self.current_volume = 0.5
+        self.current_volume = 0.2
 
     def set_audio_volume(self, volume):
         self.current_volume = max(0.0, min(1.0, volume))
