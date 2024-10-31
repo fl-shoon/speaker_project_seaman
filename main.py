@@ -24,7 +24,7 @@ async def main():
     parser = argparse.ArgumentParser()
     # Pico
     parser.add_argument('--access_key', help='AccessKey for Porcupine', default=os.environ["PICO_ACCESS_KEY"])
-    parser.add_argument('--keyword_paths', nargs='+', help="Paths to keyword model files", default=[PicoWakeWordSatoru])
+    parser.add_argument('--keyword_paths', nargs='+', help="Paths to keyword model files", default=[PicoWakeWordSatoru, PicoWakeWordSatoru])
     parser.add_argument('--model_path', help='Path to Porcupine model file', default=PicoLangModel)
     parser.add_argument('--sensitivities', nargs='+', help="Sensitivities for keywords", type=float, default=[0.5])
 
