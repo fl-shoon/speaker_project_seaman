@@ -101,9 +101,6 @@ class ConversationClient:
                 # Extract and return the transcribed text
                 if hasattr(transcript, 'text'):
                     transcribed_text = transcript.text.strip()
-                
-                    # Log both the transcription and quality metrics
-                    openai_logger.info(f"Final transcription: {transcribed_text}")
                     return transcribed_text
                 else:
                     raise ValueError("No text found in transcription response")

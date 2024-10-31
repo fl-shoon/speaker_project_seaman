@@ -33,8 +33,12 @@ class PyRecorder:
         self.CHUNK_DURATION_MS = 30 
         self.CHUNK_SIZE = int(RATE * self.CHUNK_DURATION_MS / 1000)
         self.CHUNKS_PER_SECOND = 1000 // self.CHUNK_DURATION_MS
-        self.energy_threshold = None
-        self.silence_energy = None
+        
+        self.energy_threshold = 50000  # Initial threshold
+        self.silence_energy = 10000
+
+        self.energy_window_size = 50  
+        self.recent_energy_levels = []
 
         with suppress_stdout_stderr():
             self.pyaudio = pyaudio.PyAudio()
@@ -81,16 +85,26 @@ class PyRecorder:
             energy = np.sum(filtered_audio**2) / len(filtered_audio)
             energy_levels.append(energy)
         
-        self.silence_energy = np.mean(energy_levels)
-        self.energy_threshold = self.silence_energy * 4
+        self.silence_energy = np.percentile(energy_levels, 30)
+        self.energy_threshold = self.silence_energy * 5
         recorder_logger.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
     
+    def update_energy_threshold(self, energy):
+        self.recent_energy_levels.append(energy)
+        if len(self.recent_energy_levels) > self.energy_window_size:
+            self.recent_energy_levels.pop(0)
+            
+        if len(self.recent_energy_levels) >= 10:  
+            self.silence_energy = np.percentile(self.recent_energy_levels, 30)
+            self.energy_threshold = self.silence_energy * 5
+
     def is_speech(self, audio_frame):
-        if self.energy_threshold is None:
-            return False
         audio_chunk = np.frombuffer(audio_frame, dtype=np.int16)
         filtered_audio = self.butter_lowpass_filter(audio_chunk, cutoff=1000, fs=RATE)
         energy = np.sum(filtered_audio**2) / len(filtered_audio)
+        
+        self.update_energy_threshold(energy)
+        
         return energy > self.energy_threshold
 
     def record_question(self, audio_player):
@@ -105,6 +119,8 @@ class PyRecorder:
         max_duration = 30
 
         max_silent_chunks = int(silence_duration * self.CHUNKS_PER_SECOND)
+        min_speech_chunks = int(0.2 * self.CHUNKS_PER_SECOND)  
+        speech_chunks = 0
 
         while True:
             data = self.stream.read(self.CHUNK_SIZE, exception_on_overflow=False)
@@ -113,11 +129,17 @@ class PyRecorder:
 
             if self.is_speech(data):
                 if not is_speaking:
+                    speech_chunks = 1
+                else:
+                    speech_chunks += 1
+                    
+                if speech_chunks >= min_speech_chunks and not is_speaking:
                     recorder_logger.info("Speech detected. Recording...")
                     is_speaking = True
                 silent_chunks = 0
             else:
                 silent_chunks += 1
+                speech_chunks = max(0, speech_chunks - 1)
 
             if is_speaking:
                 if silent_chunks > max_silent_chunks:
