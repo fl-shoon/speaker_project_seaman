@@ -58,7 +58,7 @@ class ScheduleManager:
             scheduled_time += datetime.timedelta(days=1)
         
         time_diff = (scheduled_time - now).total_seconds()
-        check_time = max(time_diff - 30, 30)  # Check 1 minute before schedule, but not less than 1 minute from now
+        check_time = max(time_diff - 30, 30)  
         
         clear('schedule_check')
         every(check_time).seconds.do(self.trigger_scheduled_conversation).tag('schedule_check')
