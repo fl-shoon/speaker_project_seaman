@@ -104,20 +104,26 @@ class ConversationClient:
                 # Log the full transcription details
                 openai_logger.info(f"Raw transcription result: {transcript}")
                 
-                # Check confidence if available
+                # Check quality metrics if available
                 if hasattr(transcript, 'segments') and transcript.segments:
-                    confidence = transcript.segments[0].confidence
-                    openai_logger.info(f"Transcription confidence: {confidence}")
-                    if confidence < 0.7:
-                        openai_logger.warning(f"Low confidence transcription detected: {confidence}")
+                    segment = transcript.segments[0]
+                    quality_info = {
+                        'avg_logprob': segment.avg_logprob,
+                        'no_speech_prob': segment.no_speech_prob,
+                        'compression_ratio': segment.compression_ratio
+                    }
+                    openai_logger.info(f"Transcription quality metrics: {quality_info}")
+                    
+                    # Evaluate transcription quality
+                    if segment.avg_logprob < -1.0 or segment.no_speech_prob > 0.5:
+                        openai_logger.warning(f"Low quality transcription detected: {quality_info}")
 
-                # Extract the text from the verbose response
-                transcribed_text = transcript.text
-
-                # Log the final transcription
-                openai_logger.info(f"Final transcription: {transcribed_text}")
-                
-                return transcribed_text
+                # Extract and return the transcribed text
+                if hasattr(transcript, 'text'):
+                    openai_logger.info(f"Final transcription: {transcript.text}")
+                    return transcript.text
+                else:
+                    raise ValueError("No text found in transcription response")
 
         except OpenAIError as e:
             error_msg = f"OpenAI API error during transcription: {str(e)}"
