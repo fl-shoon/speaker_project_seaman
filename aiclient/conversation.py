@@ -72,6 +72,61 @@ class ConversationClient:
                 language="ja"
             )
         return transcript
+    
+    def speech_to_text(self, audio_file_path: str) -> str:
+        try:
+            openai_logger.info(f"Processing audio file: {audio_file_path}")
+            
+            # Get basic audio info for debugging
+            try:
+                with wave.open(audio_file_path, 'rb') as wav_file:
+                    audio_info = {
+                        'channels': wav_file.getnchannels(),
+                        'sample_width': wav_file.getsampwidth(),
+                        'frame_rate': wav_file.getframerate(),
+                        'frames': wav_file.getnframes(),
+                        'duration': wav_file.getnframes() / wav_file.getframerate()
+                    }
+                    openai_logger.info(f"Audio file properties: {audio_info}")
+            except Exception as e:
+                openai_logger.warning(f"Could not read audio file properties: {e}")
+
+            # Attempt transcription with more detailed output
+            with open(audio_file_path, "rb") as audio_file:
+                transcript = self.client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    response_format="verbose_json",  # Get more detailed output
+                    language="ja",
+                    temperature=0.2  # Lower temperature for more accurate results
+                )
+
+                # Log the full transcription details
+                openai_logger.info(f"Raw transcription result: {transcript}")
+                
+                # Check confidence if available
+                if hasattr(transcript, 'segments') and transcript.segments:
+                    confidence = transcript.segments[0].confidence
+                    openai_logger.info(f"Transcription confidence: {confidence}")
+                    if confidence < 0.7:
+                        openai_logger.warning(f"Low confidence transcription detected: {confidence}")
+
+                # Extract the text from the verbose response
+                transcribed_text = transcript.text
+
+                # Log the final transcription
+                openai_logger.info(f"Final transcription: {transcribed_text}")
+                
+                return transcribed_text
+
+        except OpenAIError as e:
+            error_msg = f"OpenAI API error during transcription: {str(e)}"
+            openai_logger.error(error_msg)
+            return "音声の認識に問題が発生しました。もう一度お試しください。"
+        except Exception as e:
+            error_msg = f"Unexpected error during transcription: {str(e)}"
+            openai_logger.error(error_msg)
+            return "音声の認識に問題が発生しました。もう一度お試しください。"
 
     def text_to_speech(self, text: str, output_file: str):
         try:

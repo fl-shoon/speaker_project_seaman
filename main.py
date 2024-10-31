@@ -1,6 +1,5 @@
 from core import SpeakerCore
 from fireclient.fireclient import FireClient
-# from aiclient.openai_api import OpenAIClient
 from aiclient.conversation import ConversationClient
 from utils.define import *
 from utils.scheduler import ScheduleManager
@@ -20,9 +19,6 @@ def signal_handler(signum, frame):
     set_exit_event()
 
 async def main():
-    # aiClient = OpenAIClient()
-    # await aiClient.initialize()
-
     aiClient = ConversationClient()
 
     parser = argparse.ArgumentParser()

@@ -126,7 +126,6 @@ class SpeakerCore:
             self.display.stop_listening_display()
 
             try:
-                # conversation_ended = await self.ai_client.process_audio(input_audio_file)
                 conversation_ended = self.ai_client.process_audio(input_audio_file)
                 if conversation_ended:
                     conversation_active = False
@@ -171,11 +170,9 @@ class SpeakerCore:
             try:
                 # continue the dual conversation
                 if input_audio_file:
-                    # conversation_ended = await self.ai_client.process_audio(input_audio_file)
                     conversation_ended = self.ai_client.process_audio(input_audio_file)
                 # this will run only once when the scheduled time has reached
                 else:
-                    # conversation_ended, audio_file = await self.ai_client.process_text(text_initiation)
                     conversation_ended, audio_file = self.ai_client.process_text(text_initiation)
                     input_audio_file = audio_file
                     
