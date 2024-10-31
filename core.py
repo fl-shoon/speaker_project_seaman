@@ -142,15 +142,18 @@ class SpeakerCore:
         conversation_active = True
         silence_count = 0
         max_silence = 2
-        text_initiation ="こんにちは"
-        input_audio_file = None
+        text_initiation = "こんにちは"
 
-        while conversation_active and not is_exit_event_set():
-            if not self.serial_port_check():
-                break
+        try:
+            conversation_ended, _ = self.ai_client.process_text(text_initiation)
+            if conversation_ended:
+                self.display.fade_in_logo(SeamanLogo)
+                return
 
-            # do recording only when the AI initiated conversation has finished once
-            if input_audio_file:
+            while conversation_active and not is_exit_event_set():
+                if not self.serial_port_check():
+                    break
+
                 self.display.start_listening_display(SatoruHappy)
                 frames = self.py_recorder.record_question(audio_player=self.audio_player)
 
@@ -163,29 +166,27 @@ class SpeakerCore:
                 else:
                     silence_count = 0
 
+                input_audio_file = AIOutputAudio
                 self.py_recorder.save_audio(frames, input_audio_file)
 
                 self.display.stop_listening_display()
 
-            try:
-                # continue the dual conversation
-                if input_audio_file:
+                try:
                     conversation_ended = self.ai_client.process_audio(input_audio_file)
-                # this will run only once when the scheduled time has reached
-                else:
-                    conversation_ended, audio_file = self.ai_client.process_text(text_initiation)
-                    input_audio_file = audio_file
-                    
-                if conversation_ended:
+                    if conversation_ended:
+                        conversation_active = False
+                except Exception as e:
+                    core_logger.error(f"Error processing conversation: {e}")
+                    self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
                     conversation_active = False
-            except Exception as e:
-                core_logger.error(f"Error processing conversation: {e}")
-                self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
-                conversation_active = False
 
-            await asyncio.sleep(0.1)
+                await asyncio.sleep(0.1)
 
-        self.display.fade_in_logo(SeamanLogo)
+        except Exception as e:
+            core_logger.error(f"Error in scheduled conversation: {e}")
+            self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+        finally:
+            self.display.fade_in_logo(SeamanLogo)
 
     def serial_port_check(self):
         if not self.serial_module.isPortOpen:
