@@ -78,7 +78,6 @@ class ConversationClient:
                         "これは日常会話の文脈です。一般的な挨拶、仕事、生活、健康などについての会話が含まれています。"
                         "「仕事」「安心」「大丈夫」「はい」「いいえ」などの一般的な言葉が使用される可能性が高いです。"
                     ),
-                    word_timestamps=True
                 )
 
                 if hasattr(transcript, 'segments') and transcript.segments:
@@ -105,8 +104,6 @@ class ConversationClient:
                 
                     # Log both the transcription and quality metrics
                     openai_logger.info(f"Final transcription: {transcribed_text}")
-                    openai_logger.info(f"Transcription quality metrics: {quality_info}")
-                    
                     return transcribed_text
                 else:
                     raise ValueError("No text found in transcription response")
