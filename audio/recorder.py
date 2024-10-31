@@ -86,7 +86,27 @@ class PyRecorder:
             energy_levels.append(energy)
         
         self.silence_energy = np.mean(energy_levels)
-        self.energy_threshold = self.silence_energy * 3.5
+        multiplier = 3.5
+        '''
+        this value is to adjust the level of voice detection
+
+        The lower the multiplier value:
+
+        More sensitive to quiet sounds
+        More likely to detect soft speech
+        BUT also more likely to trigger on background noise
+        Result in false stt
+
+
+        The higher the multiplier:
+
+        Less sensitive to quiet sounds
+        More resistant to background noise
+        BUT might miss soft speech
+
+        If speech is not detected, DECREASE the multiplier.
+        '''
+        self.energy_threshold = self.silence_energy * multiplier
         recorder_logger.info(f"Calibration complete. Silence energy: {self.silence_energy}, Threshold: {self.energy_threshold}")
     
     def is_speech(self, audio_frame):
