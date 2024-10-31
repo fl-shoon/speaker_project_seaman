@@ -5,9 +5,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStartPre=/bin/bash -c 'mkdir -p /run/user/1000/pulse && chown pi:pi /run/user/1000/pulse && chmod 700 /run/user/1000/pulse'
-ExecStart=/bin/bash -c 'su pi -c "/home/pi/seaman/seaman_speaker/runApp.sh"'
-WorkingDirectory=/home/pi/seaman/seaman_speaker
+ExecStartPre=/bin/bash -c 'mkdir -p /run/user/1000/pulse && chown poi:poi /run/user/1000/pulse && chmod 700 /run/user/1000/pulse'
+ExecStart=/bin/bash -c 'su pi -c "/home/pi/seaman_speaker/hardware/runApp.sh"'
+WorkingDirectory=/home/pi/seaman_speaker/hardware/
 StandardOutput=journal
 StandardError=journal
 Restart=on-failure
