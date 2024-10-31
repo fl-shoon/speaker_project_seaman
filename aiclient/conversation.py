@@ -64,47 +64,35 @@ class ConversationClient:
                     return "申し訳ありません。エラーが発生しました。"
 
     def speech_to_text(self, audio_file_path: str) -> str:
-        with open(audio_file_path, "rb") as audio_file:
-            transcript = self.client.audio.transcriptions.create(
-                model="whisper-1", 
-                file=audio_file, 
-                response_format="text",
-                language="ja"
-            )
-        return transcript
-    
-    def speech_to_text(self, audio_file_path: str) -> str:
         try:
-            openai_logger.info(f"Processing audio file: {audio_file_path}")
+            openai_logger.info(f"Processing speech audio file: {audio_file_path}")
             
-            # Get basic audio info for debugging
-            try:
-                with wave.open(audio_file_path, 'rb') as wav_file:
-                    audio_info = {
-                        'channels': wav_file.getnchannels(),
-                        'sample_width': wav_file.getsampwidth(),
-                        'frame_rate': wav_file.getframerate(),
-                        'frames': wav_file.getnframes(),
-                        'duration': wav_file.getnframes() / wav_file.getframerate()
-                    }
-                    openai_logger.info(f"Audio file properties: {audio_info}")
-            except Exception as e:
-                openai_logger.warning(f"Could not read audio file properties: {e}")
+            # Check the audio file porperties
+            # try:
+            #     with wave.open(audio_file_path, 'rb') as wav_file:
+            #         audio_info = {
+            #             'channels': wav_file.getnchannels(),
+            #             'sample_width': wav_file.getsampwidth(),
+            #             'frame_rate': wav_file.getframerate(),
+            #             'frames': wav_file.getnframes(),
+            #             'duration': wav_file.getnframes() / wav_file.getframerate()
+            #         }
+            #         openai_logger.info(f"Audio file properties: {audio_info}")
+            # except Exception as e:
+            #     openai_logger.warning(f"Could not read audio file properties: {e}")
 
-            # Attempt transcription with more detailed output
             with open(audio_file_path, "rb") as audio_file:
                 transcript = self.client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file,
-                    response_format="verbose_json",  # Get more detailed output
+                    response_format="verbose_json",  
                     language="ja",
-                    temperature=0.2  # Lower temperature for more accurate results
+                    temperature=0.2  
                 )
 
                 # Log the full transcription details
-                openai_logger.info(f"Raw transcription result: {transcript}")
+                # openai_logger.info(f"Raw transcription result: {transcript}")
                 
-                # Check quality metrics if available
                 if hasattr(transcript, 'segments') and transcript.segments:
                     segment = transcript.segments[0]
                     quality_info = {
@@ -112,7 +100,7 @@ class ConversationClient:
                         'no_speech_prob': segment.no_speech_prob,
                         'compression_ratio': segment.compression_ratio
                     }
-                    openai_logger.info(f"Transcription quality metrics: {quality_info}")
+                    # openai_logger.info(f"Transcription quality metrics: {quality_info}")
                     
                     # Evaluate transcription quality
                     if segment.avg_logprob < -1.0 or segment.no_speech_prob > 0.5:
