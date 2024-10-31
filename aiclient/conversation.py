@@ -85,6 +85,7 @@ class ConversationClient:
             with open(output_file, "wb") as f:
                 for chunk in response.iter_bytes(chunk_size=4096):
                     f.write(chunk)
+            self.audio_player.sync_audio_and_gif(output_file, SpeakingGif)
         except OpenAIError as e:
             openai_logger.error(f"Failed to generate speech: {e}")
 
@@ -112,7 +113,6 @@ class ConversationClient:
                 try:
                     self.text_to_speech(content_response, output_audio_file)
                     openai_logger.info(f'Audio content written to file "{output_audio_file}"')
-                    self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
                 except Exception as e:
                     openai_logger.error(f"Text-to-speech failed: {e}")
                     self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
