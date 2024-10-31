@@ -131,12 +131,30 @@ class ConversationClient:
                 response_format="wav",
             )
 
-            with open(output_file, "wb") as f:
-                for chunk in response.iter_bytes(chunk_size=4096):
-                    f.write(chunk)
-            self.audio_player.sync_audio_and_gif(output_file, SpeakingGif)
+            # Write the audio file
+            try:
+                with open(output_file, "wb") as f:
+                    for chunk in response.iter_bytes(chunk_size=4096):
+                        f.write(chunk)
+                openai_logger.info(f"Successfully wrote audio to {output_file}")
+            except Exception as e:
+                openai_logger.error(f"Failed to write audio file: {e}")
+                self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+                return
+
+            # Play the audio file
+            try:
+                self.audio_player.sync_audio_and_gif(output_file, SpeakingGif)
+            except Exception as e:
+                openai_logger.error(f"Failed to play audio: {e}")
+                self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+
         except OpenAIError as e:
             openai_logger.error(f"Failed to generate speech: {e}")
+            self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
+        except Exception as e:
+            openai_logger.error(f"Unexpected error in text_to_speech: {e}")
+            self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
 
     def process_audio(self, input_audio_file: str) -> bool:
         try:
@@ -165,11 +183,11 @@ class ConversationClient:
                 except Exception as e:
                     openai_logger.error(f"Text-to-speech failed: {e}")
                     self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
-                    return True
+                    return False
             else:
                 openai_logger.error("No AI response text generated")
                 self.audio_player.sync_audio_and_gif(ErrorAudio, SpeakingGif)
-                return True
+                return False
             
             return conversation_ended
 
