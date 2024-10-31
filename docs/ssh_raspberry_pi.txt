@@ -1,0 +1,96 @@
+# Setting Up Remote SSH Access to Raspberry Pi
+
+## 1. Enable SSH on Raspberry Pi
+```bash
+# Enable SSH service
+sudo systemctl enable ssh
+sudo systemctl start ssh
+
+# Verify SSH is running
+sudo systemctl status ssh
+```
+
+## 2. Set Up Static IP or Dynamic DNS
+
+### Option A: Static IP on Raspberry Pi
+Edit `/etc/dhcpcd.conf`:
+```bash
+sudo nano /etc/dhcpcd.conf
+```
+
+Add these lines:
+```bash
+interface wlan0
+static ip_address=192.168.1.100/24    # Choose your desired IP
+static routers=192.168.1.1            # Your router's IP
+static domain_name_servers=8.8.8.8     # DNS server
+```
+
+### Option B: Dynamic DNS Setup
+1. Create account with a DDNS provider (e.g., No-IP, DuckDNS)
+2. Install DDNS client:
+```bash
+sudo apt-get update
+sudo apt-get install ddclient
+```
+
+## 3. Configure Port Forwarding
+1. Access router admin panel (typically 192.168.1.1)
+2. Find port forwarding settings
+3. Add new rule:
+   - External Port: 22 (or custom port)
+   - Internal Port: 22
+   - Protocol: TCP
+   - Internal IP: Your Pi's IP
+   - Enable the rule
+
+## 4. Secure SSH Configuration
+Edit `/etc/ssh/sshd_config`:
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+
+Add/modify these lines:
+```bash
+Port 22                    # Change to custom port if desired
+PermitRootLogin no
+PasswordAuthentication no  # If using key-based auth
+MaxAuthTries 3
+```
+
+## 5. Set Up SSH Keys (Recommended)
+On your client machine:
+```bash
+# Generate SSH key pair
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Copy public key to Pi
+ssh-copy-id -i ~/.ssh/id_ed25519.pub pi@raspberry_pi_ip
+```
+
+## 6. Connecting from External Network
+```bash
+# Using IP address
+ssh pi@external_ip -p port_number
+
+# Using DDNS hostname
+ssh pi@your_hostname.ddns.net -p port_number
+```
+
+## Security Tips
+1. Use a strong password for the Pi user
+2. Consider changing the default SSH port
+3. Use fail2ban to prevent brute force attacks:
+```bash
+sudo apt-get install fail2ban
+sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+```
+
+## Troubleshooting
+1. Check SSH service: `sudo systemctl status ssh`
+2. Verify port forwarding: `sudo netstat -tulpn | grep ssh`
+3. Test local connection first: `ssh pi@local_ip`
+4. Check firewall rules: `sudo iptables -L`
+5. Verify external access: `nmap -p port_number external_ip`

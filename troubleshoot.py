@@ -16,7 +16,7 @@ def apt_troubleshoot():
 
     # Check if running as root
     if os.geteuid() != 0:
-        return False, "This script needs to be run as root (sudo python3 apt_troubleshoot.py)"
+        return False, "This script needs to be run as root (sudo python3 troubleshoot.py)"
 
     # 1. Check if dpkg is locked
     print("Checking for locked dpkg...")

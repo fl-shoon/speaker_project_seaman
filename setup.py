@@ -41,10 +41,10 @@ class RaspberryPiSetup:
         print(f"Installing {package_name}...")
         return self.run_command(f"{self.pip_path} install {package_name}")
 
-    def update_system(self):
-        print("Updating system...")
-        self.run_command("sudo apt-get update")
-        self.run_command("sudo apt-get upgrade -y")
+    # def update_system(self):
+    #     print("Updating system...")
+    #     self.run_command("sudo apt-get update")
+    #     self.run_command("sudo apt-get upgrade -y")
 
     def install_system_dependencies(self):
         print("Installing system dependencies...")
@@ -98,9 +98,9 @@ pcm.!default {
         self.run_command("sudo /etc/init.d/alsa-utils restart")
         self.run_command("pulseaudio --start")
 
-    def setup(self, update_system=False):
-        if update_system:
-            self.update_system()
+    def setup(self):
+        # if update_system:
+        #     self.update_system()
         if not self.install_system_dependencies():
             print("Failed to install system dependencies. Exiting.")
             return False
@@ -120,12 +120,12 @@ pcm.!default {
         return True
     
 def main():
-    parser = argparse.ArgumentParser(description="Raspberry Pi Setup Script")
-    parser.add_argument("--update-system", action="store_true", help="Update system before installation")
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser(description="Raspberry Pi Setup Script")
+    # parser.add_argument("--update-system", action="store_true", help="Update system before installation")
+    # args = parser.parse_args()
 
     setup = RaspberryPiSetup()
-    if not setup.setup(update_system=args.update_system):
+    if not setup.setup():
         sys.exit(1)
 
 if __name__ == "__main__":
