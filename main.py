@@ -46,7 +46,6 @@ async def main():
     except Exception as e:
         main_logger.error(f"An unexpected error occurred: {e}", exc_info=True)
     finally:
-        # await speaker.ai_client.close()
         speaker.cleanup()
         
 if __name__ == '__main__':

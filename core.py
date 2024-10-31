@@ -145,10 +145,15 @@ class SpeakerCore:
         text_initiation = "こんにちは"
 
         try:
+            core_logger.info("Starting scheduled conversation")
             conversation_ended, _ = self.ai_client.process_text(text_initiation)
+            
             if conversation_ended:
+                core_logger.info("Conversation ended after initial greeting")
                 self.display.fade_in_logo(SeamanLogo)
                 return
+
+            await asyncio.sleep(0.5)
 
             while conversation_active and not is_exit_event_set():
                 if not self.serial_port_check():

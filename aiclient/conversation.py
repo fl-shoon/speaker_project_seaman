@@ -210,7 +210,7 @@ class ConversationClient:
             output_audio_file = AIOutputAudio
             self.text_to_speech(content_response, output_audio_file)
 
-            self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
+            # self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
             return conversation_ended, output_audio_file
 
         except Exception as e:
