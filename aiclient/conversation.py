@@ -67,32 +67,20 @@ class ConversationClient:
         try:
             openai_logger.info(f"Processing speech audio file: {audio_file_path}")
             
-            # Check the audio file porperties
-            # try:
-            #     with wave.open(audio_file_path, 'rb') as wav_file:
-            #         audio_info = {
-            #             'channels': wav_file.getnchannels(),
-            #             'sample_width': wav_file.getsampwidth(),
-            #             'frame_rate': wav_file.getframerate(),
-            #             'frames': wav_file.getnframes(),
-            #             'duration': wav_file.getnframes() / wav_file.getframerate()
-            #         }
-            #         openai_logger.info(f"Audio file properties: {audio_info}")
-            # except Exception as e:
-            #     openai_logger.warning(f"Could not read audio file properties: {e}")
-
             with open(audio_file_path, "rb") as audio_file:
                 transcript = self.client.audio.transcriptions.create(
                     model="whisper-1",
                     file=audio_file,
                     response_format="verbose_json",  
                     language="ja",
-                    temperature=0.2  
+                    temperature=0.0,
+                    prompt=(
+                        "これは日常会話の文脈です。一般的な挨拶、仕事、生活、健康などについての会話が含まれています。"
+                        "「仕事」「安心」「大丈夫」「はい」「いいえ」などの一般的な言葉が使用される可能性が高いです。"
+                    ),
+                    word_timestamps=True
                 )
 
-                # Log the full transcription details
-                # openai_logger.info(f"Raw transcription result: {transcript}")
-                
                 if hasattr(transcript, 'segments') and transcript.segments:
                     segment = transcript.segments[0]
                     quality_info = {
@@ -103,13 +91,23 @@ class ConversationClient:
                     # openai_logger.info(f"Transcription quality metrics: {quality_info}")
                     
                     # Evaluate transcription quality
-                    if segment.avg_logprob < -1.0 or segment.no_speech_prob > 0.5:
-                        openai_logger.warning(f"Low quality transcription detected: {quality_info}")
+                    if segment.avg_logprob < -1.0:
+                        openai_logger.warning(f"Very low confidence transcription detected: {quality_info}")
+                        return "申し訳ありません。音声をはっきりと聞き取れませんでした。もう一度お話しいただけますか？"
+                    
+                    if segment.no_speech_prob > 0.5:
+                        openai_logger.warning(f"Possible no speech detected: {quality_info}")
+                        return "音声が検出できませんでした。もう一度お話しください。"
 
                 # Extract and return the transcribed text
                 if hasattr(transcript, 'text'):
-                    openai_logger.info(f"Final transcription: {transcript.text}")
-                    return transcript.text
+                    transcribed_text = transcript.text.strip()
+                
+                    # Log both the transcription and quality metrics
+                    openai_logger.info(f"Final transcription: {transcribed_text}")
+                    openai_logger.info(f"Transcription quality metrics: {quality_info}")
+                    
+                    return transcribed_text
                 else:
                     raise ValueError("No text found in transcription response")
 
@@ -210,7 +208,6 @@ class ConversationClient:
             output_audio_file = AIOutputAudio
             self.text_to_speech(content_response, output_audio_file)
 
-            # self.audio_player.sync_audio_and_gif(output_audio_file, SpeakingGif)
             return conversation_ended, output_audio_file
 
         except Exception as e:
