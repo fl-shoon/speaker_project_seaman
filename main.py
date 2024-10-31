@@ -1,6 +1,7 @@
 from core import SpeakerCore
 from fireclient.fireclient import FireClient
-from openai.openai import OpenAIClient
+# from aiclient.openai_api import OpenAIClient
+from aiclient.conversation import ConversationClient
 from utils.define import *
 from utils.scheduler import ScheduleManager
 from utils.utils import set_exit_event
@@ -19,8 +20,10 @@ def signal_handler(signum, frame):
     set_exit_event()
 
 async def main():
-    aiClient = OpenAIClient()
-    await aiClient.initialize()
+    # aiClient = OpenAIClient()
+    # await aiClient.initialize()
+
+    aiClient = ConversationClient()
 
     parser = argparse.ArgumentParser()
     # Pico
@@ -47,7 +50,7 @@ async def main():
     except Exception as e:
         main_logger.error(f"An unexpected error occurred: {e}", exc_info=True)
     finally:
-        await speaker.ai_client.close()
+        # await speaker.ai_client.close()
         speaker.cleanup()
         
 if __name__ == '__main__':
